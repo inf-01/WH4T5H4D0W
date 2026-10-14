@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WH4T5H4D0W // Interception Protocol v3.7</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-panel: #0d0d14;
+    --fg: #c8f7c5;
+    --accent: #00ff41;
+    --accent2: #00e5ff;
+    --danger: #ff003c;
+    --warning: #ffbd00;
+    --magenta: #ff00ff;
+    --border: #1a3a1a;
+    --glow: 0 0 10px rgba(0,255,65,0.3), 0 0 40px rgba(0,255,65,0.1);
+    --glow-cyan: 0 0 10px rgba(0,229,255,0.3), 0 0 40px rgba(0,229,255,0.1);
+    --glow-danger: 0 0 10px rgba(255,0,60,0.4), 0 0 40px rgba(255,0,60,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* === MATRIX RAIN CANVAS === */
+  #matrixCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0.12;
+  }
+
+  /* === SCANLINES === */
+  .scanlines {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 999;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+  }
+
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
+  }
+
+  /* === LAYOUT === */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-rows: 50px 1fr 120px;
+    height: 100vh;
+    gap: 1px;
+  }
+
+  /* === HEADER === */
+  .header {
+    grid-column: 1 / -1;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--magenta), var(--accent));
+    background-size: 300% 100%;
+    animation: headerGlow 4s linear infinite;
+  }
+
+  @keyframes headerGlow {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 300% 0%; }
+  }
+
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo .icon {
+    font-size: 18px;
+    color: var(--accent2);
+    filter: drop-shadow(0 0 6px rgba(0,229,255,0.6));
+  }
+
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: #556b55;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: pulse 1.5s ease-in-out infinite;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .clock {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 2px;
+  }
+
+  /* === SIDEBAR IZQUIERDO === */
+  .sidebar-left {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--accent2);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+  }
+
+  .target-card {
+    background: rgba(0,255,65,0.03);
+    border: 1px solid rgba(0,255,65,0.15);
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  .target-card .label {
+    color: #4a6a4a;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .target-card .value {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: bold;
+  }
+
+  .target-card .value.cyan { color: var(--accent2); }
+  .target-card .value.danger { color: var(--danger); text-shadow: 0 0 8px rgba(255,0,60,0.4); }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .stat-row .k { color: #4a6a4a; }
+  .stat-row .v { color: var(--accent); font-weight: bold; }
+  .stat-row .v.warn { color: var(--warning); }
+  .stat-row .v.danger { color: var(--danger); }
+
+  /* === TERMINAL PRINCIPAL === */
+  .terminal-main {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .terminal-bar {
+    background: rgba(13,13,20,0.95);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+  }
+
+  .terminal-bar .tabs {
+    display: flex;
+    gap: 2px;
+  }
+
+  .tab {
+    padding: 4px 12px;
+    background: transparent;
+    color: #4a6a4a;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    background: rgba(0,255,65,0.05);
+  }
+
+  .tab:hover { color: var(--accent2); }
+
+  .terminal-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.65;
+    scroll-behavior: smooth;
+  }
+
+  .terminal-output::-webkit-scrollbar { width: 4px; }
+  .terminal-output::-webkit-scrollbar-track { background: var(--bg); }
+  .terminal-output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .line { margin-bottom: 2px; white-space: pre-wrap; word-break: break-all; }
+  .line.sys { color: #3a5a3a; }
+  .line.info { color: var(--accent2); }
+  .line.success { color: var(--accent); text-shadow: 0 0 4px rgba(0,255,65,0.3); }
+  .line.warn { color: var(--warning); }
+  .line.error { color: var(--danger); text-shadow: 0 0 6px rgba(255,0,60,0.3); }
+  .line.enc { color: #6a4a8a; letter-spacing: 0.5px; }
+  .line.decrypt { color: var(--magenta); text-shadow: 0 0 4px rgba(255,0,255,0.3); }
+  .line.header-line { color: var(--accent); font-weight: bold; }
+
+  .prompt-line {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(13,13,20,0.9);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .prompt-symbol {
+    color: var(--accent);
+    margin-right: 8px;
+    text-shadow: var(--glow);
+  }
+
+  .prompt-input {
+    background: transparent;
+    border: none;
+    color: var(--fg);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    flex: 1;
+    caret-color: var(--accent);
+  }
+
+  /* === SIDEBAR DERECHO === */
+  .sidebar-right {
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .msg-preview {
+    background: rgba(0,229,255,0.03);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 10px;
+    line-height: 1.6;
+    animation: fadeSlideIn 0.4s ease-out;
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-preview .time { color: #3a5a3a; font-size: 9px; }
+  .msg-preview .from { color: var(--accent2); font-weight: bold; font-size: 11px; }
+  .msg-preview .cipher { color: #6a4a8a; font-size: 9px; word-break: break-all; margin: 4px 0; }
+  .msg-preview .plain { color: var(--magenta); font-size: 10px; border-left: 2px solid var(--magenta); padding-left: 6px; margin-top: 4px; }
+
+  /* === FOOTER === */
+  .footer {
+    grid-column: 1 / -1;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    padding: 8px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    font-size: 10px;
+  }
+
+  .footer-col .col-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #3a5a3a;
+    margin-bottom: 4px;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 4px 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .progress-fill.green { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .progress-fill.cyan { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+  .progress-fill.danger { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+  /* === GLITCH EFFECT === */
+  .glitch {
+    position: relative;
+    animation: glitchAnim 8s infinite;
+  }
+
+  @keyframes glitchAnim {
+    0%,92%,100% { transform: none; filter: none; }
+    93% { transform: translateX(-2px); filter: hue-rotate(90deg); }
+    94% { transform: translateX(2px) skewX(-1deg); }
+    95% { transform: none; filter: hue-rotate(0deg); }
+    96% { transform: translateX(-1px); filter: hue-rotate(180deg); }
+    97% { transform: none; filter: none; }
+  }
+
+  /* === CURSOR BLINK === */
+  .cursor-blink::after {
+    content: '\2588';
+    animation: blink 0.8s step-end infinite;
+    color: var(--accent);
+  }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* === HEX DUMP STYLING === */
+  .hex-dump {
+    font-size: 10px;
+    line-height: 1.4;
+    color: #4a3a6a;
+    padding: 4px 0;
+  }
+
+  .hex-offset { color: #3a3a5a; }
+  .hex-data { color: #6a4a8a; }
+  .hex-ascii { color: #4a6a4a; }
+
+  /* === NOTIFICATION BADGE === */
+  .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+
+  .badge.live {
+    background: rgba(255,0,60,0.15);
+    color: var(--danger);
+    border: 1px solid rgba(255,0,60,0.3);
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  .badge.secure {
+    background: rgba(0,255,65,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,255,65,0.2);
+  }
+
+  /* === NETWORK GRAPH MINI === */
+  #networkCanvas {
+    width: 100%;
+    height: 80px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: rgba(0,0,0,0.3);
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 900px) {
+    .app {
+      grid-template-columns: 1fr;
+      grid-template-rows: 50px 1fr 120px;
+    }
+    .sidebar-left, .sidebar-right { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="matrixCanvas"></canvas>
+<div class="scanlines"></div>
+
+<div class="app">
+  <!-- HEADER -->
+  <header class="header glitch">
+    <div class="logo">
+      <i class="fa-solid fa-shield-halved icon"></i>
+      WH4T5H4D0W <span style="color:#3a5a3a;font-weight:400;font-size:10px">// v3.7.2</span>
+    </div>
+    <div class="header-status">
+      <span><span class="status-dot"></span>INTERCEPTOR ACTIVE</span>
+      <span class="badge live">LIVE</span>
+      <span class="badge secure">AES-256</span>
+      <span class="clock" id="clock">00:00:00</span>
+    </div>
+  </header>
+
+  <!-- SIDEBAR IZQUIERDO -->
+  <aside class="sidebar-left">
+    <div>
+      <div class="panel-title"><i class="fa-solid fa-crosshairs"></i> Objetivo</div>
+      <div class="target-card">
+        <div class="label">Numero</div>
+        <div class="value">+1 (631) 645-4533</div>
+        <div class="label" style="margin-top:6px">Region</div>
+        <div class="value cyan">Suffolk County, NY</div>
+        <div class="label" style="margin-top:6px">Zona</div>
+        <div class="value cyan">Long Island</div>
+        <div class="label" style="margin-top:6px">Operador</div>
+        <div class="value" style="font-size:11px">Suffolk Telecom LLC</div>
+        <div class="label" style="margin-top:6px">Protocolo</div>
+        <div class="value danger">WhatsApp E2E</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title"><i class="fa-solid fa-chart-bar"></i> Estadisticas</div>
+      <div class="stat-row"><span class="k">Paquetes</span><span class="v" id="packets">0</span></div>
+      <div class="stat-row"><span class="k">Interceptados</span><span class="v warn" id="intercepted">0</span></div>
+      <div class="stat-row"><span class="k">Descifrados</span><span class="v" id="decrypted">0</span></div>
+      <div class="stat-row"><span class="k">Fallidos</span><span class="v danger" id="failed">0</span></div>
+      <div class="stat-row"><span class="k">Latencia</span><span class="v" id="latency">--ms</span></div>
+      <div class="stat-row"><span class="k">Uptime</span><span class="v cyan" id="uptime">00:00</span></div>
+    </div>
+
+    <div>
+      <div class="panel-title"><i class="fa-solid fa-network-wired"></i> Red</div>
+      <canvas id="networkCanvas"></canvas>
+    </div>
+
+    <div>
+      <div class="panel-title"><i class="fa-solid fa-key"></i> Claves</div>
+      <div class="stat-row"><span class="k">Session Key</span><span class="v" style="font-size:9px;color:#6a4a8a" id="sessionKey">------</span></div>
+      <div class="stat-row"><span class="k">Rotacion</span><span class="v warn">48h</span></div>
+      <div class="stat-row"><span class="k">Cifrado</span><span class="v" style="color:var(--magenta)">Signal</span></div>
+    </div>
+  </aside>
+
+  <!-- TERMINAL PRINCIPAL -->
+  <main class="terminal-main">
+    <div class="terminal-bar">
+      <div class="tabs">
+        <button class="tab active" data-tab="intercept"><i class="fa-solid fa-satellite-dish"></i> INTERCEPT</button>
+        <button class="tab" data-tab="decrypt"><i class="fa-solid fa-unlock"></i> DECRYPT</button>
+        <button class="tab" data-tab="hex"><i class="fa-solid fa-code"></i> HEX DUMP</button>
+      </div>
+      <span style="color:#3a5a3a"><i class="fa-solid fa-terminal"></i> bash@wh4t5h4d0w:~$</span>
+    </div>
+    <div class="terminal-output" id="terminal"></div>
+    <div class="prompt-line">
+      <span class="prompt-symbol">wh4t5h4d0w $></span>
+      <input class="prompt-input" id="promptInput" type="text" placeholder="Escribe un comando o presiona Enter para interceptar..." autocomplete="off" spellcheck="false">
+    </div>
+  </main>
+
+  <!-- SIDEBAR DERECHO -->
+  <aside class="sidebar-right">
+    <div>
+      <div class="panel-title"><i class="fa-solid fa-message"></i> Mensajes Recientes</div>
+      <div id="msgPreviewContainer"></div>
+    </div>
+  </aside>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-col">
+      <div class="col-title">Captura de Paquetes</div>
+      <div class="progress-bar"><div class="progress-fill green" id="captureProgress" style="width:0%"></div></div>
+      <span style="color:#3a5a3a" id="captureStatus">Esperando inicio...</span>
+    </div>
+    <div class="footer-col">
+      <div class="col-title">Descifrado Signal</div>
+      <div class="progress-bar"><div class="progress-fill cyan" id="decryptProgress" style="width:0%"></div></div>
+      <span style="color:#3a5a3a" id="decryptStatus">Sin sesion</span>
+    </div>
+    <div class="footer-col">
+      <div class="col-title">Explotacion</div>
+      <div class="progress-bar"><div class="progress-fill danger" id="exploitProgress" style="width:0%"></div></div>
+      <span style="color:#3a5a3a" id="exploitStatus">Inactivo</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+// ==============================
+// Matrix Rain de fondo
+// ==============================
+const matrixCanvas = document.getElementById('matrixCanvas');
+const mCtx = matrixCanvas.getContext('2d');
+let matrixCols, matrixDrops;
+
+function initMatrix() {
+  matrixCanvas.width = window.innerWidth;
+  matrixCanvas.height = window.innerHeight;
+  const fontSize = 14;
+  matrixCols = Math.floor(matrixCanvas.width / fontSize);
+  matrixDrops = Array(matrixCols).fill(1).map(() => Math.random() * matrixCanvas.height / fontSize | 0);
+}
+
+function drawMatrix() {
+  mCtx.fillStyle = 'rgba(10,10,15,0.06)';
+  mCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+  mCtx.fillStyle = '#00ff41';
+  mCtx.font = '14px Share Tech Mono';
+  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF';
+  for (let i = 0; i < matrixCols; i++) {
+    const char = chars[Math.random() * chars.length | 0];
+    mCtx.fillText(char, i * 14, matrixDrops[i] * 14);
+    if (matrixDrops[i] * 14 > matrixCanvas.height && Math.random() > 0.975) {
+      matrixDrops[i] = 0;
+    }
+    matrixDrops[i]++;
+  }
+  requestAnimationFrame(drawMatrix);
+}
+
+initMatrix();
+drawMatrix();
+window.addEventListener('resize', initMatrix);
+
+// ==============================
+// Mini grafo de red
+// ==============================
+const netCanvas = document.getElementById('networkCanvas');
+const nCtx = netCanvas.getContext('2d');
+let netPoints = [];
+
+function initNetGraph() {
+  netCanvas.width = netCanvas.clientWidth * 2;
+  netCanvas.height = netCanvas.clientHeight * 2;
+  nCtx.scale(2, 2);
+  netPoints = [];
+  for (let i = 0; i < 40; i++) {
+    netPoints.push({
+      x: Math.random() * netCanvas.clientWidth,
+      y: Math.random() * netCanvas.clientHeight,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6
+    });
+  }
+}
+
+function drawNetGraph() {
+  const w = netCanvas.clientWidth;
+  const h = netCanvas.clientHeight;
+  nCtx.clearRect(0, 0, w, h);
+
+  for (const p of netPoints) {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0 || p.x > w) p.vx *= -1;
+    if (p.y < 0 || p.y > h) p.vy *= -1;
+  }
+
+  for (let i = 0; i < netPoints.length; i++) {
+    for (let j = i + 1; j < netPoints.length; j++) {
+      const dx = netPoints[i].x - netPoints[j].x;
+      const dy = netPoints[i].y - netPoints[j].y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 50) {
+        nCtx.strokeStyle = `rgba(0,229,255,${0.2 * (1 - d / 50)})`;
+        nCtx.lineWidth = 0.5;
+        nCtx.beginPath();
+        nCtx.moveTo(netPoints[i].x, netPoints[i].y);
+        nCtx.lineTo(netPoints[j].x, netPoints[j].y);
+        nCtx.stroke();
+      }
+    }
+  }
+
+  for (const p of netPoints) {
+    nCtx.fillStyle = 'rgba(0,229,255,0.6)';
+    nCtx.beginPath();
+    nCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+    nCtx.fill();
+  }
+
+  requestAnimationFrame(drawNetGraph);
+}
+
+initNetGraph();
+drawNetGraph();
+
+// ==============================
+// Reloj
+// ==============================
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toTimeString().slice(0, 8);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ==============================
+// Terminal y simulacion
+// ==============================
+const terminal = document.getElementById('terminal');
+const promptInput = document.getElementById('promptInput');
+let lineCount = 0;
+let simulationStarted = false;
+let stats = { packets: 0, intercepted: 0, decrypted: 0, failed: 0 };
+let startTime = Date.now();
+
+// Mensajes simulados que apareceran como "interceptados"
+const fakeMessages = [
+  { from: "+1 (631) 645-4533", text: "Hey, llego tarde al meeting de Suffolk", time: "18:42" },
+  { from: "+1 (917) 832-1094", text: "Necesito que me pases los docs de Long Island", time: "18:45" },
+  { from: "+1 (631) 645-4533", text: "Los tengo en el drive, te comparto el link", time: "18:46" },
+  { from: "+1 (516) 221-8734", text: "Nos vemos en el port de Patchogue mañana", time: "18:51" },
+  { from: "+1 (631) 645-4533", text: "Perfecto, llevo el equipo de redes", time: "18:52" },
+  { from: "+1 (917) 832-1094", text: "Cuidado con la seguridad en el server", time: "18:55" },
+  { from: "+1 (631) 645-4533", text: "Ya actualice el firewall del datacenter", time: "18:57" },
+  { from: "+1 (516) 221-8734", text: "El cliente de Huntington confirma la cita", time: "19:01" },
+  { from: "+1 (631) 645-4533", text: "Ok, anoto. Cobramos el 50% adelantado", time: "19:03" },
+  { from: "+1 (917) 832-1094", text: "La VPN de Suffolk sigue cayendose", time: "19:08" },
+  { from: "+1 (631) 645-4533", text: "Revisare los logs del router esta noche", time: "19:10" },
+  { from: "+1 (516) 221-8734", text: "Mandame el reporte cuando termines", time: "19:12" },
+];
+
+// Genera texto cifrado simulado
+function genCipher(len) {
+  const chars = '0123456789abcdef';
+  let s = '';
+  for (let i = 0; i < len; i++) {
+    s += chars[Math.random() * chars.length | 0];
+    if ((i + 1) % 4 === 0 && i < len - 1) s += ' ';
+  }
+  return s;
+}
+
+function genKey() {
+  return genCipher(32).replace(/\s/g, '');
+}
+
+function genIV() {
+  return genCipher(16).replace(/\s/g, '');
+}
+
+function genHexDump() {
+  let lines = [];
+  for (let i = 0; i < 8; i++) {
+    const offset = (i * 16).toString(16).padStart(8, '0');
+    let hex = '';
+    let ascii = '';
+    for (let j = 0; j < 16; j++) {
+      const byte = Math.random() * 256 | 0;
+      hex += byte.toString(16).padStart(2, '0') + ' ';
+      ascii += (byte >= 32 && byte <= 126) ? String.fromCharCode(byte) : '.';
+    }
+    lines.push(`<span class="hex-offset">${offset}</span>  <span class="hex-data">${hex}</span> <span class="hex-ascii">${ascii}</span>`);
+  }
+  return lines.join('\n');
+}
+
+// Anade una linea a la terminal
+function addLine(text, cls = '') {
+  const div = document.createElement('div');
+  div.className = `line ${cls}`;
+  div.innerHTML = text;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+  lineCount++;
+}
+
+// Delay con promesas
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// Escribe caracteres uno por uno
+async function typeLine(text, cls = '', charDelay = 12) {
+  const div = document.createElement('div');
+  div.className = `line ${cls}`;
+  terminal.appendChild(div);
+  for (let i = 0; i < text.length; i++) {
+    div.innerHTML = text.slice(0, i + 1) + '<span class="cursor-blink"></span>';
+    terminal.scrollTop = terminal.scrollHeight;
+    await delay(charDelay);
+  }
+  div.innerHTML = text;
+}
+
+// Actualizar estadisticas en la UI
+function updateStats() {
+  document.getElementById('packets').textContent = stats.packets.toLocaleString();
+  document.getElementById('intercepted').textContent = stats.intercepted;
+  document.getElementById('decrypted').textContent = stats.decrypted;
+  document.getElementById('failed').textContent = stats.failed;
+  document.getElementById('latency').textContent = (Math.random() * 40 + 12 | 0) + 'ms';
+}
+
+function updateUptime() {
+  const elapsed = (Date.now() - startTime) / 1000 | 0;
+  const m = (elapsed / 60 | 0).toString().padStart(2, '0');
+  const s = (elapsed % 60).toString().padStart(2, '0');
+  document.getElementById('uptime').textContent = `${m}:${s}`;
+}
+setInterval(updateUptime, 1000);
+
+// Agregar mensaje al sidebar derecho
+function addMsgPreview(msg, cipher) {
+  const container = document.getElementById('msgPreviewContainer');
+  const div = document.createElement('div');
+  div.className = 'msg-preview';
+  div.innerHTML = `
+    <div class="time"><i class="fa-regular fa-clock"></i> ${msg.time}</div>
+    <div class="from"><i class="fa-solid fa-arrow-right" style="font-size:8px;margin-right:4px"></i>${msg.from}</div>
+    <div class="cipher"><i class="fa-solid fa-lock" style="font-size:8px;margin-right:3px;color:var(--danger)"></i>${cipher}</div>
+    <div class="plain">${msg.text}</div>
+  `;
+  container.prepend(div);
+  // Limitar a 6 previews
+  while (container.children.length > 6) {
+    container.removeChild(container.lastChild);
+  }
+}
+
+// ==============================
+// Secuencia de simulacion principal
+// ==============================
+async function runSimulation() {
+  if (simulationStarted) return;
+  simulationStarted = true;
+
+  const target = "+1 (631) 645-4533";
+
+  // Banner inicial
+  addLine('╔══════════════════════════════════════════════════════════════╗', 'header-line');
+  addLine('║  WH4T5H4D0W v3.7.2 // WhatsApp Interception Framework      ║', 'header-line');
+  addLine('║  [SIMULACION] Todos los datos son ficticios                  ║', 'warn');
+  addLine('╚══════════════════════════════════════════════════════════════╝', 'header-line');
+  addLine('');
+
+  await delay(500);
+  await typeLine('[SYS] Inicializando modulos de intercepcion...', 'sys', 18);
+  await delay(300);
+  addLine('[OK]  Modulo de captura de paquetes ........... CARGADO', 'success');
+  await delay(200);
+  addLine('[OK]  Motor de descifrado Signal Protocol ..... CARGADO', 'success');
+  await delay(200);
+  addLine('[OK]  Inyector de session WhatsApp ........... CARGADO', 'success');
+  await delay(200);
+  addLine('[OK]  Analizador de flujo E2E ................ CARGADO', 'success');
+  addLine('');
+
+  await delay(600);
+  addLine('[INFO] Conectando al nodo de Suffolk County, NY...', 'info');
+  await delay(800);
+  addLine('[INFO] Resolviendo ruta para +1 631 645 4533...', 'info');
+  await delay(600);
+  addLine('[OK]  Nodo encontrado: suffolk-nyc-relay.whatsapp.net [172.16.42.88]', 'success');
+  addLine('[OK]  Region: Long Island, Suffolk County, New York', 'success');
+  addLine('[OK]  Latitud: 40.7834° N  Longitud: 73.1356° W', 'success');
+  addLine('');
+
+  await delay(700);
+  addLine('[INFO] Iniciando interceptacion de paquetes TLS 1.3...', 'info');
+  await delay(400);
+  addLine('[WARN] Se requiere bypass del cifrado E2E de Signal Protocol', 'warn');
+  await delay(600);
+
+  // Progreso de captura
+  document.getElementById('captureStatus').textContent = 'Capturando paquetes...';
+  for (let i = 0; i <= 100; i += Math.random() * 8 + 2 | 0) {
+    const pct = Math.min(i, 100);
+    document.getElementById('captureProgress').style.width = pct + '%';
+    await delay(40);
+  }
+  document.getElementById('captureProgress').style.width = '100%';
+  document.getElementById('captureStatus').textContent = 'Captura activa — paquetes fluyendo';
+  addLine('[OK]  Bypass de handshake TLS completado', 'success');
+  addLine('[OK]  Certificado PIN spoofed exitosamente', 'success');
+  addLine('');
+
+  await delay(500);
+  addLine('[INFO] Obteniendo clave de sesion del objetivo...', 'info');
+  await delay(800);
+
+  const sessionKey = genKey();
+  const iv = genIV();
+  document.getElementById('sessionKey').textContent = sessionKey.slice(0, 12) + '...';
+  addLine(`[KEY] Session Key: ${sessionKey}`, 'enc');
+  addLine(`[KEY] IV Vector:   ${iv}`, 'enc');
+  addLine(`[KEY] Cipher:      AES-256-CBC + Signal Ratchet`, 'enc');
+  addLine('');
+
+  await delay(600);
+  addLine('[INFO] Descifrando flujo de mensajes de ' + target, 'info');
+  await delay(500);
+
+  // Progreso de descifrado
+  document.getElementById('decryptStatus').textContent = 'Descifrando sesion...';
+  for (let i = 0; i <= 100; i += Math.random() * 12 + 3 | 0) {
+    const pct = Math.min(i, 100);
+    document.getElementById('decryptProgress').style.width = pct + '%';
+    await delay(30);
+  }
+  document.getElementById('decryptProgress').style.width = '100%';
+  document.getElementById('decryptStatus').textContent = 'Descifrado parcial activo';
+  addLine('[OK]  Sesion Signal comprometida para ' + target, 'success');
+  addLine('[OK]  Double Ratchet sincronizado', 'success');
+  addLine('');
+
+  await delay(400);
+
+  // Progreso de explotacion
+  document.getElementById('exploitStatus').textContent = 'Explotando vulnerabilidad...';
+  for (let i = 0; i <= 100; i += Math.random() * 10 + 4 | 0) {
+    const pct = Math.min(i, 100);
+    document.getElementById('exploitProgress').style.width = pct + '%';
+    await delay(35);
+  }
+  document.getElementById('exploitProgress').style.width = '100%';
+  document.getElementById('exploitStatus').textContent = 'Acceso de lectura establecido';
+  addLine('[OK]  Interceptacion establecida para +1 (631) 645-4533', 'success');
+  addLine('[OK]  Ubicacion confirmada: Suffolk County, Long Island, NY', 'success');
+  addLine('');
+
+  await delay(500);
+  addLine('══════════════════════════════════════════════════════════════', 'header-line');
+  addLine('  INTERCEPTACION EN TIEMPO REAL — Mensajes cifrados capturados', 'header-line');
+  addLine('══════════════════════════════════════════════════════════════', 'header-line');
+  addLine('');
+
+  // Bucle de mensajes interceptados
+  let msgIndex = 0;
+  let packetBase = 12480;
+
+  async function interceptNext() {
+    const msg = fakeMessages[msgIndex % fakeMessages.length];
+    const cipher = genCipher(48 + (Math.random() * 32 | 0));
+    const key = genKey().slice(0, 16);
+    const iv = genIV();
+    const seq = (packetBase + msgIndex * 7 + (Math.random() * 5 | 0)).toString().padStart(6, '0');
+    const timestamp = new Date().toISOString();
+
+    stats.packets += Math.random() * 15 + 5 | 0;
+    stats.intercepted++;
+
+    // Mensaje cifrado interceptado
+    addLine(`┌─ PAQUETE #${seq} ─────────────────────────────────────`, 'info');
+    addLine(`│ Timestamp : ${timestamp}`, 'sys');
+    addLine(`│ From      : ${msg.from}`, 'info');
+    addLine(`│ Cipher    : AES-256-CBC`, 'sys');
+    addLine(`│ Key       : ${key}...`, 'enc');
+    addLine(`│ IV        : ${iv}`, 'enc');
+    addLine(`│ Encrypted : ${cipher}`, 'enc');
+    addLine(`│ Hex Dump  :`, 'sys');
+    const hexLines = genHexDump().split('\n');
+    for (const hl of hexLines) {
+      addLine(`│   ${hl}`, 'enc');
+    }
+
+    // Intento de descifrado
+    await delay(400 + Math.random() * 600 | 0);
+    const success = Math.random() > 0.15;
+
+    if (success) {
+      stats.decrypted++;
+      addLine(`│`, 'sys');
+      addLine(`│ [DECRYPTED] ${msg.text}`, 'decrypt');
+      addLine(`└───────────────────────────────────────────────────`, 'info');
+      addMsgPreview(msg, cipher.slice(0, 40) + '...');
+    } else {
+      stats.failed++;
+      addLine(`│`, 'sys');
+      addLine(`│ [FAILED] No se pudo descifrar — clave de ratchet no sincronizada`, 'error');
+      addLine(`└───────────────────────────────────────────────────`, 'error');
+    }
+
+    addLine('');
+    updateStats();
+
+    msgIndex++;
+
+    // Siguiente mensaje con intervalo variable
+    const nextDelay = 2500 + Math.random() * 3500 | 0;
+    setTimeout(interceptNext, nextDelay);
+  }
+
+  // Primer mensaje tras breve pausa
+  setTimeout(interceptNext, 800);
+
+  // Actualizar paquetes continuamente
+  setInterval(() => {
+    stats.packets += Math.random() * 3 + 1 | 0;
+    updateStats();
+  }, 1200);
+}
+
+// ==============================
+// Comandos interactivos
+// ==============================
+promptInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    const cmd = promptInput.value.trim().toLowerCase();
+    promptInput.value = '';
+
+    if (cmd === '') {
+      if (!simulationStarted) {
+        runSimulation();
+      }
+      return;
+    }
+
+    addLine(`wh4t5h4d0w $> ${cmd}`, 'sys');
+
+    if (cmd === 'start' || cmd === 'run' || cmd === 'intercept') {
+      runSimulation();
+    } else if (cmd === 'help') {
+      addLine('Comandos disponibles:', 'info');
+      addLine('  start / run / intercept  — Iniciar interceptacion', 'sys');
+      addLine('  status                   — Estado de la conexion', 'sys');
+      addLine('  target                   — Mostrar info del objetivo', 'sys');
+      addLine('  clear                    — Limpiar terminal', 'sys');
+      addLine('  key                      — Mostrar clave de sesion', 'sys');
+      addLine('  dump                     — Volcado hex aleatorio', 'sys');
+    } else if (cmd === 'status') {
+      if (simulationStarted) {
+        addLine('[STATUS] Interceptacion ACTIVA sobre +1 (631) 645-4533', 'success');
+        addLine(`[STATUS] Paquetes: ${stats.packets} | Interceptados: ${stats.intercepted} | Descifrados: ${stats.decrypted} | Fallidos: ${stats.failed}`, 'info');
+      } else {
+        addLine('[STATUS] Interceptacion INACTIVA — ejecuta "start" para iniciar', 'warn');
+      }
+    } else if (cmd === 'target') {
+      addLine('[TARGET] +1 (631) 645-4533', 'info');
+      addLine('[TARGET] Suffolk County, Long Island, New York, US', 'info');
+      addLine('[TARGET] Operador: Suffolk Telecom LLC', 'info');
+      addLine('[TARGET] Protocolo: WhatsApp E2E (Signal)', 'info');
+    } else if (cmd === 'clear') {
+      terminal.innerHTML = '';
+    } else if (cmd === 'key') {
+      addLine(`[KEY] ${genKey()}`, 'enc');
+      addLine(`[IV]  ${genIV()}`, 'enc');
+    } else if (cmd === 'dump') {
+      const hexLines = genHexDump().split('\n');
+      for (const hl of hexLines) {
+        addLine(hl, 'enc');
+      }
+    } else {
+      addLine(`[ERROR] Comando no reconocido: "${cmd}" — escribe "help" para ver comandos`, 'error');
+    }
+  }
+});
+
+// Auto-iniciar la simulacion tras 1 segundo
+setTimeout(() => {
+  runSimulation();
+}, 1000);
+</script>
+</body>
+</html>
